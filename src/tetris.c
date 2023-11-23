@@ -22,6 +22,7 @@ enum { ESC = 27, LEFT = 75, RIGHT = 77, UP = 72, DOWN = 80 };
 #define BW 10
 #define BH 20
 
+void normalGame();
 void DrawScreen();
 BOOL ProcessKey();
 void PrintBrick(BOOL Show);
@@ -49,6 +50,14 @@ int nx, ny;
 int brick, rot;
 
 int main()
+{
+	// 기본 게임 실행
+	normalGame();
+
+	return FALSE;
+}
+
+void normalGame()
 {
 	int nFrame, nStay;
 	int x, y;
@@ -155,7 +164,6 @@ BOOL ProcessKey()
 			}
 		}
 	}
-	return FALSE;
 }
 
 void PrintBrick(BOOL Show)
