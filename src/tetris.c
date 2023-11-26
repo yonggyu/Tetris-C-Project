@@ -51,10 +51,77 @@ int brick, rot;
 
 int main()
 {
-	// 기본 게임 실행
-	normalGame();
+	printf("\n\n\n\n");
+	printf("           #####   #####   #####   ####    #####    ### \n");
+	printf("             #     #         #     #   #     #     #    \n");
+	printf("             #     ###       #     ####      #     #### \n");
+	printf("             #     #         #     ##        #         #\n");
+	printf("             #     #####     #     # ##    #####   #### \n");
+
+	int menuNum = selectMenu();
+
+
+	switch (menuNum)
+	{
+		case 0: {
+			normalGame();
+		}
+	}
 
 	return FALSE;
+}
+
+int selectMenu()
+{
+	gotoxy(24 - 2, 12);
+	printf("> 기본 모드");
+	gotoxy(24, 13);
+	printf("아이템 모드");
+	gotoxy(24, 14);
+	printf("생존 모드");
+	gotoxy(24, 15);
+	printf("2인 멀티플레이 모드");
+	gotoxy(24, 16);
+	printf("게임 종료 (ESC)");
+
+	int x = 24;
+	int y = 12;
+
+	while (1)
+	{
+		int n = getch();
+
+		switch (n)
+		{
+		case UP: {
+			if (y > 12)
+			{
+				gotoxy(x - 2, y);
+				printf(" ");
+				gotoxy(x - 2, --y);
+				printf(">");
+			}
+			break;
+		}
+
+		case DOWN: {
+			if (y < 16)
+			{
+				gotoxy(x - 2, y);
+				printf(" ");
+				gotoxy(x - 2, ++y);
+				printf(">");
+			}
+			break;
+		}
+
+		case '\r': {
+			return y - 12;
+		}
+
+
+		}
+	}
 }
 
 void normalGame()
