@@ -15,7 +15,7 @@
 	SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE),&CurInfo); }
 
 
-enum { ESC = 27, LEFT = 75, RIGHT = 77, UP = 72, DOWN = 80 };
+enum { CTRL = 17, ALT = 18, ESC = 27, LEFT = 75, RIGHT = 77, UP = 72, DOWN = 80 };
 #define putsxy(x, y, s) {gotoxy(x, y);puts(s);}
 #define BX 5
 #define BY 1
@@ -29,6 +29,7 @@ void ItemGame();
 void selectMenu();
 void DrawScreen();
 BOOL ProcessKey();
+BOOL ItemProcessKey();
 void PrintBrick(BOOL Show);
 int GetAround(int x, int y, int b, int r);
 BOOL MoveDown();
@@ -285,7 +286,7 @@ void ItemGame()
 				nStay = nFrame;
 				if (MoveDown()) break;
 			}
-			if (ProcessKey()) break;
+			if (ItemProcessKey()) break;
 			delay(1000 / 20);
 		}
 	}
@@ -306,6 +307,55 @@ void DrawScreen()
 }
 
 BOOL ProcessKey()
+{
+	if (kbhit()) {
+		int ch = getch();
+		if (ch == 0xE0 || ch == 0) {
+			ch = getch();
+			switch (ch) {
+			case LEFT:
+				if (GetAround(nx - 1, ny, brick, rot) == EMPTY) {
+					PrintBrick(FALSE);
+					nx--;
+					PrintBrick(TRUE);
+				}
+				break;
+			case RIGHT:
+				if (GetAround(nx + 1, ny, brick, rot) == EMPTY) {
+					PrintBrick(FALSE);
+					nx++;
+					PrintBrick(TRUE);
+				}
+				break;
+			case UP:
+				if (GetAround(nx, ny, brick, (rot + 1) % 4) == EMPTY) {
+					PrintBrick(FALSE);
+					rot = (rot + 1) % 4;
+					PrintBrick(TRUE);
+				}
+				break;
+			case DOWN:
+				if (MoveDown()) {
+					return TRUE;
+				}
+				break;
+			}
+		}
+		else {
+			switch (ch) {
+			case ' ':
+				while (MoveDown() == FALSE) { ; }
+				return TRUE;
+			case ESC:
+				exit(0);
+			}
+		}
+	}
+	return FALSE;
+}
+
+//아이템 모드의 경우 이 함수로 입력을 받음.
+BOOL ItemProcessKey()
 {
 	if (kbhit()) {
 		int ch = getch();
