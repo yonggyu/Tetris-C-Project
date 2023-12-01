@@ -29,7 +29,8 @@ void ItemGame();
 void selectMenu();
 void DrawScreen();
 BOOL ProcessKey();
-BOOL ItemProcessKey();
+BOOL ItemProcessKey(int* itemList);
+void activateItem(int item);
 void PrintBrick(BOOL Show);
 int GetAround(int x, int y, int b, int r);
 BOOL MoveDown();
@@ -54,6 +55,9 @@ int board[BW + 2][BH + 2];
 int nx, ny;
 int brick, rot;
 
+int line;
+int i;
+
 int main()
 {
 	printf("\n\n\n\n");
@@ -69,6 +73,7 @@ int main()
 
 void selectMenu()
 {
+	line = 13;
 	gotoxy(24 - 2, 12);
 	printf("> 기본 모드");
 	gotoxy(24, 13);
@@ -226,8 +231,7 @@ void ItemGame()
 
 	//아이템 영역
 	int itemList[2] = { 5, 5 };
-	int line = 13;
-	int i = 0;
+	i = 0;
 
 	// 전체 게임 루프
 	for (; 1;) {
@@ -286,7 +290,7 @@ void ItemGame()
 				nStay = nFrame;
 				if (MoveDown()) break;
 			}
-			if (ItemProcessKey()) break;
+			if (ItemProcessKey(itemList)) break;
 			delay(1000 / 20);
 		}
 	}
@@ -355,7 +359,7 @@ BOOL ProcessKey()
 }
 
 //아이템 모드의 경우 이 함수로 입력을 받음.
-BOOL ItemProcessKey()
+BOOL ItemProcessKey(int *itemList)
 {
 	if (kbhit()) {
 		int ch = getch();
@@ -395,12 +399,44 @@ BOOL ItemProcessKey()
 			case ' ':
 				while (MoveDown() == FALSE) { ; }
 				return TRUE;
+			case 'z':
+			case 'Z':
+				if (itemList[0] != 5) {
+					activateItem(itemList[0]);
+					itemList[0] = 5;  // 아이템 사용 후 초기화
+				}
+				else if (itemList[1] != 5) {
+					activateItem(itemList[1]);
+					itemList[1] = 5;  // 아이템 사용 후 초기화
+				}
+				else {
+					// 아이템이 없는 경우
+				}
+				break;
+
 			case ESC:
 				exit(0);
 			}
 		}
 	}
 	return FALSE;
+}
+
+void activateItem(int item)
+{
+	switch (item)
+	{
+		// 시간 정지 아이템
+		case 0:
+			//아이템 텍스트 빈칸으로 초기화
+			putsxy(50, 13, "                           ");
+			//아이템 목록 출력 라인 -1
+			line--;
+			i = 0;
+			//3초 pause
+			delay(3000);
+			break;
+	}
 }
 
 void PrintBrick(BOOL Show)
