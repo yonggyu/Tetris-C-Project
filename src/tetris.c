@@ -36,6 +36,11 @@ int GetAround(int x, int y, int b, int r);
 BOOL MoveDown();
 void TestFull();
 
+void itemListPush(int data);
+int itemListPop();
+int itemListSize();
+void DrawItemList();
+
 struct Point {
 	int x, y;
 };
@@ -55,9 +60,9 @@ int board[BW + 2][BH + 2];
 int nx, ny;
 int brick, rot;
 
-int line;
-int i;
-int itemList[2] = { 5, 5 };
+//itemListStack
+int itemList[2];
+int Top = -1;
 
 int main()
 {
@@ -74,7 +79,6 @@ int main()
 
 void selectMenu()
 {
-	line = 13;
 	gotoxy(24 - 2, 12);
 	printf("> 기본 모드");
 	gotoxy(24, 13);
@@ -230,9 +234,6 @@ void ItemGame()
 	putsxy(50, 12, "아이템 목록");
 	nFrame = 20;
 
-	//아이템 영역
-	i = 0;
-
 	// 전체 게임 루프
 	for (; 1;) {
 		brick = random(sizeof(Shape) / sizeof(Shape[0]));
@@ -243,43 +244,36 @@ void ItemGame()
 
 		// 5% 확률로 아이템 생성 (단, 아이템의 최대 개수는 2개.)
 		//스택 이용하여 수정 itemList
-		if (random(5) == 0 && i < 2)
+		if (random(5) == 0 && itemListSize() < 2)
 		{
 			switch (random(4))
 			{
 			case 0:
 			{
-				itemList[i] = 0; //시간 정지 아이템
-				putsxy(50, line, "시간 정지 아이템");
-				line++;
-				i++;
+				itemListPush(0);
+				//시간 정지 아이템
 				break;
 			}
 			case 1:
 			{
-				itemList[i] = 1; // 속도 지연 아이템
-				putsxy(50, line, "속도 지연 아이템");
-				line++;
-				i++;
+				itemListPush(1);
+				// 속도 지연 아이템
 				break;
 			}
 			case 2:
 			{
-				itemList[i] = 2; // 폭탄 아이템
-				putsxy(50, line, "폭탄 아이템");
-				line++;
-				i++;
+				itemListPush(2); 
+				// 폭탄 아이템
 				break;
 			}
 			case 3:
 			{
-				itemList[i] = 3; //다음 나올 블럭을 일자형 블럭으로 바꿔주는 아이템
-				putsxy(50, line, "일자형 블럭 아이템");
-				line++;
-				i++;
+				itemListPush(3);
+				//다음 나올 블럭을 일자형 블럭으로 바꿔주는 아이템
 				break;
 			}
 			}
+			DrawItemList();
 		}
 
 		if (GetAround(nx, ny, brick, rot) != EMPTY) break;
@@ -301,9 +295,53 @@ void ItemGame()
 	selectMenu();
 }
 
-void itemListPush()
+void itemListPush(int data)
 {
+	itemList[++Top] = data;
+}
 
+int itemListPop()
+{
+	int temp = itemList[Top];
+	itemList[Top] = NULL;
+	Top--;
+	return temp;
+}
+
+int itemListSize()
+{
+	return Top + 1;
+}
+
+void DrawItemList()
+{
+	int i = 0;
+	int line = 13;
+	
+	//아이템 텍스트 초기화 후 덮어쓰기
+	while (i != itemListSize()) {
+		putsxy(50, line, "                                     ");
+		switch (itemList[i])
+		{
+			case 0:
+				putsxy(50, line, "시간 정지 아이템");
+				break;
+
+			case 1:
+				putsxy(50, line, "속도 지연 아이템");
+				break;
+
+			case 2:
+				putsxy(50, line, "폭탄 아이템");
+				break;
+
+			case 3:
+				putsxy(50, line, "일자형 블럭 아이템");
+				break;
+		}
+		i++;
+		line++;
+	}
 }
 
 void DrawScreen()
@@ -405,18 +443,12 @@ BOOL ItemProcessKey(int* itemList)
 			case ' ':
 				while (MoveDown() == FALSE) { ; }
 				return TRUE;
+
 			case 'z':
 			case 'Z':
-				if (itemList[0] != 5) {
-					activateItem(itemList[0]);
-					itemList[0] = 5;  // 아이템 사용 후 초기화
-				}
-				else if (itemList[1] != 5) {
-					activateItem(itemList[1]);
-					itemList[1] = 5;  // 아이템 사용 후 초기화
-				}
-				else {
-					// 아이템이 없는 경우
+				if (itemListSize() != 0) {
+					activateItem(itemListPop());
+					DrawItemList();
 				}
 				break;
 
@@ -434,35 +466,20 @@ void activateItem(int item)
 	{
 		// 시간 정지 아이템
 	case 0:
-		//아이템 텍스트 빈칸으로 초기화
-		putsxy(50, 13, NULL);
-		//아이템 목록 출력 라인 -1, 아이템 개수 -1
-		line--;
-		i--;
-		itemList[i] = 5;
 		//3초 pause
 		delay(3000);
 		break;
 
 		//속도 지연 아이템
 	case 1:
-		putsxy(50, 13, NULL);
-		line--;
-		i--;
 		break;
 
 		//폭탄 아이템
 	case 2:
-		putsxy(50, 13, NULL);
-		line--;
-		i--;
 		break;
 
 		//일자형 블럭 아이템
 	case 3:
-		putsxy(50, 13, NULL);
-		line--;
-		i--;
 		break;
 	}
 }
