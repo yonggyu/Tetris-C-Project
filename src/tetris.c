@@ -196,7 +196,7 @@ void ItemGame()
 	putsxy(50, 5, "How To Play?")
 		putsxy(50, 6, "좌우:이동, 위:회전, 아래:내림");
 	putsxy(50, 7, "공백:전부 내림");
-	putsxy(50, 8, "아이템 사용:Ctrl, 아이템 순서 변경:ALT");
+	putsxy(50, 8, "아이템 사용:Z, 아이템 순서 변경:X");
 	putsxy(50, 12, "아이템 목록");
 	nFrame = 20;
 
