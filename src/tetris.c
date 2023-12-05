@@ -1,40 +1,4 @@
-#define _CRT_NONSTDC_NO_WARNINGS
 
-#include <stdio.h>
-#include <conio.h>
-#include <windows.h>
-#include <time.h>
-
-#define randomize() srand((unsigned)time(NULL))
-#define random(n) (rand() % (n))
-#define delay(n) Sleep(n)
-#define clrscr() system("cls")
-#define gotoxy(x,y) { COORD Cur = {x, y}; \
-	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE),Cur);}
-#define showcursor(bShow) { CONSOLE_CURSOR_INFO CurInfo = {20, bShow}; \
-	SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE),&CurInfo); }
-
-
-enum { CTRL = 17, ALT = 18, ESC = 27, LEFT = 75, RIGHT = 77, UP = 72, DOWN = 80 };
-#define putsxy(x, y, s) {gotoxy(x, y);puts(s);}
-#define BX 5
-#define BY 1
-#define BW 10
-#define BH 20
-
-//게임 모드
-void normalGame();
-void ItemGame();
-
-void selectMenu();
-void DrawScreen();
-BOOL ProcessKey();
-BOOL ItemProcessKey(int* itemList);
-void activateItem(int item);
-void PrintBrick(BOOL Show);
-int GetAround(int x, int y, int b, int r);
-BOOL MoveDown();
-void TestFull();
 
 void itemListPush(int data);
 int itemListPop();
@@ -62,7 +26,7 @@ int brick, rot;
 
 //itemListStack
 int itemList[2];
-int Top = -1;
+int Top = 0;
 
 int main()
 {
@@ -79,6 +43,8 @@ int main()
 
 void selectMenu()
 {
+	Top = 0;
+
 	gotoxy(24 - 2, 12);
 	printf("> 기본 모드");
 	gotoxy(24, 13);
@@ -297,50 +263,69 @@ void ItemGame()
 
 void itemListPush(int data)
 {
-	itemList[++Top] = data;
+	if (Top >= 2) {
+		return;
+	}
+
+	itemList[Top] = data;
+	Top++;
 }
 
 int itemListPop()
 {
-	int temp = itemList[Top];
-	itemList[Top] = NULL;
+	if (Top == 0) {
+		return;
+	}
+
+	int temp = itemList[0];
+
+	for (int i = 0; i < Top - 1; i++)
+	{
+		itemList[i] = itemList[i + 1];
+	}
+
 	Top--;
+
 	return temp;
 }
 
+
 int itemListSize()
 {
-	return Top + 1;
+	return Top;
 }
 
+//아이템 사용 후 리스트에서 사라지지 않는 이유?>?>?????
 void DrawItemList()
 {
 	int i = 0;
 	int line = 13;
-	
-	//아이템 텍스트 초기화 후 덮어쓰기
-	while (i != itemListSize()) {
-		putsxy(50, line, "                                     ");
+	putsxy(50, line, "                                     ");
+	putsxy(50, line + 1, "                                      ");
+	// 아이템 텍스트 초기화 후 덮어쓰기
+	for (int i = 0; i < itemListSize(); i++) {
+		if (itemListSize() == 0) {
+			break;
+		}
 		switch (itemList[i])
 		{
-			case 0:
-				putsxy(50, line, "시간 정지 아이템");
-				break;
+		case 0:
+			putsxy(50, line, "시간 정지 아이템");
+			break;
 
-			case 1:
-				putsxy(50, line, "속도 지연 아이템");
-				break;
+		case 1:
+			putsxy(50, line, "속도 지연 아이템");
+			break;
 
-			case 2:
-				putsxy(50, line, "폭탄 아이템");
-				break;
+		case 2:
+			putsxy(50, line, "폭탄 아이템");
+			break;
 
-			case 3:
-				putsxy(50, line, "일자형 블럭 아이템");
-				break;
+		case 3:
+			putsxy(50, line, "일자형 블럭 아이템");
+			break;
 		}
-		i++;
-		line++;
+		line++;  // 다음 줄로 이동
 	}
 }
 
@@ -448,7 +433,6 @@ BOOL ItemProcessKey(int* itemList)
 			case 'Z':
 				if (itemListSize() != 0) {
 					activateItem(itemListPop());
-					DrawItemList();
 				}
 				break;
 
@@ -467,19 +451,27 @@ void activateItem(int item)
 		// 시간 정지 아이템
 	case 0:
 		//3초 pause
+		putsxy(50, 18, "시간 정지 아이템이 사용되었습니다.");
+		DrawScreen();
 		delay(3000);
 		break;
 
 		//속도 지연 아이템
 	case 1:
+		putsxy(50, 18, "속도 지연 아이템이 사용되었습니다.");
+		DrawItemList();
 		break;
 
 		//폭탄 아이템
 	case 2:
+		putsxy(50, 18, "폭탄 아이템이 사용되었습니다.");
+		DrawItemList();
 		break;
 
 		//일자형 블럭 아이템
 	case 3:
+		putsxy(50, 18, "일자형 블럭 아이템이 사용되었습니다.");
+		DrawItemList();
 		break;
 	}
 }
