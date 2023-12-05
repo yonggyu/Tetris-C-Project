@@ -1,4 +1,4 @@
-
+#define _CRT_NONSTDC_NO_WARNINGS
 
 void itemListPush(int data);
 int itemListPop();
