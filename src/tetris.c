@@ -1,5 +1,41 @@
 #define _CRT_NONSTDC_NO_WARNINGS
 
+#include <stdio.h>
+#include <conio.h>
+#include <windows.h>
+#include <time.h>
+
+#define randomize() srand((unsigned)time(NULL))
+#define random(n) (rand() % (n))
+#define delay(n) Sleep(n)
+#define clrscr() system("cls")
+#define gotoxy(x,y) { COORD Cur = {x, y}; \
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE),Cur);}
+#define showcursor(bShow) { CONSOLE_CURSOR_INFO CurInfo = {20, bShow}; \
+	SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE),&CurInfo); }
+
+
+enum { CTRL = 17, ALT = 18, ESC = 27, LEFT = 75, RIGHT = 77, UP = 72, DOWN = 80 };
+#define putsxy(x, y, s) {gotoxy(x, y);puts(s);}
+#define BX 5
+#define BY 1
+#define BW 10
+#define BH 20
+
+//게임 모드
+void normalGame();
+void ItemGame();
+
+void selectMenu();
+void DrawScreen();
+BOOL ProcessKey();
+BOOL ItemProcessKey(int* itemList);
+void activateItem(int item);
+void PrintBrick(BOOL Show);
+int GetAround(int x, int y, int b, int r);
+BOOL MoveDown();
+void TestFull();
+
 void itemListPush(int data);
 int itemListPop();
 int itemListSize();
@@ -452,8 +488,8 @@ void activateItem(int item)
 	case 0:
 		//3초 pause
 		putsxy(50, 18, "시간 정지 아이템이 사용되었습니다.");
-		DrawScreen();
 		delay(3000);
+		DrawScreen();
 		break;
 
 		//속도 지연 아이템
@@ -535,5 +571,3 @@ void TestFull()
 			DrawScreen();
 			delay(200);
 		}
-	}
-}
