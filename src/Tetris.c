@@ -27,8 +27,9 @@ void normalGame();
 void ItemGame();
 
 void selectMenu();
-void howToPlay();
+void DrawItemGameRules();
 void DrawScreen();
+int DrawGameOver();
 BOOL ProcessKey();
 BOOL ItemProcessKey(int* itemList);
 void activateItem(int item);
@@ -41,6 +42,7 @@ void TestFull();
 void itemListPush(int data);
 int itemListPop();
 int itemListSize();
+void itemListSwap();
 void DrawItemList();
 
 struct Point {
@@ -61,7 +63,6 @@ char arTile[3][4] = { ". ","■","□" };
 int board[BW + 2][BH + 2];
 int nx, ny;
 int brick, rot;
-int BlockDelay = 1000;
 
 //게임 틱
 void GameDelay();
@@ -72,16 +73,11 @@ int itemList[2];
 int Top = 0;
 
 int isLineItemEnable = 0;
+int isBlockChangeItemEnable = 0;
 int isItemUsed = 0;
 
 int main()
 {
-	printf("\n\n\n\n");
-	printf("           #####   #####   #####   ####    #####    ### \n");
-	printf("             #     #         #     #   #     #     #    \n");
-	printf("             #     ###       #     ####      #     #### \n");
-	printf("             #     #         #     ##        #         #\n");
-	printf("             #     #####     #     # ##    #####   #### \n");
 
 	selectMenu();
 
@@ -89,6 +85,14 @@ int main()
 
 void selectMenu()
 {
+	showcursor(FALSE);
+
+	putsxy(11, 5, "#####   #####   #####   ####    #####    ### ");
+	putsxy(11, 6, "  #     #         #     #   #     #     #    ");
+	putsxy(11, 7, "  #     ###       #     #   #     #      ### ");
+	putsxy(11, 8, "  #     #         #     ##        #         #");
+	putsxy(11, 9, "  #     #####     #     # ##    #####   #### ")
+
 	Top = 0;
 
 	gotoxy(24 - 2, 12);
@@ -100,8 +104,6 @@ void selectMenu()
 	gotoxy(24, 15);
 	printf("2인 멀티플레이 모드");
 	gotoxy(24, 16);
-	printf("게임 방법");
-	gotoxy(24, 17);
 	printf("게임 종료 (ESC)");
 
 	int x = 24;
@@ -127,7 +129,7 @@ void selectMenu()
 		}
 
 		case DOWN: {
-			if (y < 17)
+			if (y < 16)
 			{
 				gotoxy(x - 2, y);
 				printf(" ");
@@ -162,26 +164,20 @@ void selectMenu()
 	}
 	case 4:
 	{
-		howToPlay();
-		break;
-	}
-	case 5:
-	{
 		exit(0);
 	}
 	}
 }
 
-void howToPlay()
+void DrawItemGameRules()
 {
 	clrscr();
-	putsxy(50, 5, "게임 방법");
+	putsxy(50, 5, "아이템 모드 방법");
 
 	int ch = getch();
 	if (ch == ' ' || ch == '\r')
 	{
-		clrscr();
-		selectMenu();
+		return;
 	}
 }
 
@@ -190,7 +186,6 @@ void normalGame()
 	int nFrame, nStay;
 	int x, y;
 
-	showcursor(FALSE);
 	randomize();
 	clrscr();
 
@@ -209,13 +204,13 @@ void normalGame()
 
 	putsxy(50, 3, "Normal Mode");
 	putsxy(50, 5, "How To Play?")
-	putsxy(50, 6, "좌우:이동, 위:회전, 아래:내림");
+		putsxy(50, 6, "좌우:이동, 위:회전, 아래:내림");
 	putsxy(50, 7, "공백:전부 내림");
 	nFrame = 20;
 
 	// 전체 게임 루프
 	int nextBrick = random(sizeof(Shape) / sizeof(Shape[0]));
-	while(1) {
+	while (1) {
 		brick = nextBrick;
 		nextBrick = random(sizeof(Shape) / sizeof(Shape[0]));
 		DrawNext(nextBrick);
@@ -228,7 +223,7 @@ void normalGame()
 
 		// 벽돌 하나가 바닥에 닿을 때까지의 루프
 		nStay = nFrame;
-		for(; 2;) {
+		for (; 2;) {
 			if (--nStay == 0) {
 				nStay = nFrame;
 				if (MoveDown()) break;
@@ -238,21 +233,19 @@ void normalGame()
 		}
 
 	}
-	clrscr();
-	putsxy(30, 11, "G A M E  O V E R");
-	showcursor(TRUE);
+	DrawGameOver();
 	selectMenu();
 }
 
 void GameDelay(int* time, int limitTime)
 {
 	*time += 100;
+	delay(15);
 
 	if (*time > limitTime)
 	{
 		IsTimerOn = 0;
 		*time = 0;
-		BlockDelay = 1000;
 		return;
 	}
 }
@@ -262,7 +255,8 @@ void ItemGame()
 	int nFrame, nStay;
 	int x, y;
 
-	showcursor(FALSE);
+	DrawItemGameRules();
+
 	randomize();
 	clrscr();
 
@@ -282,15 +276,27 @@ void ItemGame()
 
 	putsxy(50, 3, "Item Mode");
 	putsxy(50, 5, "How To Play?")
-		putsxy(50, 6, "좌우:이동, 위:회전, 아래:내림");
+	putsxy(50, 6, "좌우:이동, 위:회전, 아래:내림");
 	putsxy(50, 7, "공백:전부 내림");
 	putsxy(50, 8, "아이템 사용:Z, 아이템 순서 변경:X");
 	putsxy(50, 12, "아이템 목록");
 	nFrame = 20;
 
 	// 전체 게임 루프
-	for (; 1;) {
-		brick = random(sizeof(Shape) / sizeof(Shape[0]));
+	int nextBrick = random(sizeof(Shape) / sizeof(Shape[0]));
+	while(1) {
+		brick = nextBrick;
+		/* if (isBlockChangeItemEnable != 1)
+		{
+			brick = nextBrick;
+		}
+		else
+		{
+			brick = Shape[1];
+			isBlockChangeItemEnable = 0;
+		} */
+		nextBrick = random(sizeof(Shape) / sizeof(Shape[0]));
+		DrawNext(nextBrick);
 		nx = BW / 2;
 		ny = 3;
 		rot = 0;
@@ -317,13 +323,13 @@ void ItemGame()
 			case 2:
 			{
 				itemListPush(2);
-				// 폭탄 아이템
+				// 블럭 변환 아이템
 				break;
 			}
 			case 3:
 			{
 				itemListPush(3);
-				//다음 나올 블럭을 일자형 블럭으로 바꿔주는 아이템
+				//라인 클리어 아이템
 				break;
 			}
 			}
@@ -341,7 +347,7 @@ void ItemGame()
 				if (MoveDown()) break;
 			}
 			if (ItemProcessKey(itemList)) break;
-			delay(BlockDelay / 20);
+			delay(1000 / 20);
 			if (IsTimerOn)
 			{
 				GameDelay(&time, 5000);
@@ -355,9 +361,7 @@ void ItemGame()
 			isItemUsed = 0; // 아이템 사용 후 사용 여부 초기화
 		}
 	}
-	clrscr();
-	putsxy(30, 11, "G A M E  O V E R");
-	showcursor(TRUE);
+	DrawGameOver();
 	selectMenu();
 }
 
@@ -395,6 +399,17 @@ int itemListSize()
 	return Top;
 }
 
+void itemListSwap()
+{
+	if (Top < 2)
+	{
+		return;
+	}
+	int temp = itemList[0];
+	itemList[0] = itemList[Top-1];
+	itemList[Top-1] = temp;
+} 
+
 void DrawItemList()
 {
 	int i = 0;
@@ -417,7 +432,7 @@ void DrawItemList()
 			break;
 
 		case 2:
-			putsxy(50, line, "폭탄 아이템");
+			putsxy(50, line, "블럭 변환 아이템");
 			break;
 
 		case 3:
@@ -442,14 +457,28 @@ void DrawNext(int nextBrick)
 {
 	int x, y, i;
 	putsxy(34, 1, "< NEXT >");
-	for (x = 34; x <= 42; x += 2) { 
+	for (x = 34; x <= 42; x += 2) {
 		for (y = 3; y <= 6; y++) {
 			putsxy(x, y, arTile[EMPTY]);
 		}
 	}
-	for (i = 0; i < 4; i++) { 
+	for (i = 0; i < 4; i++) {
 		putsxy(38 + (Shape[nextBrick][0][i].x) * 2, 5 + Shape[nextBrick][0][i].y, arTile[BRICK]);
 	}
+}
+
+int DrawGameOver()
+{
+	clrscr();
+	putsxy(30, 11, "G A M E  O V E R");
+	putsxy(30, 13, "아무 키를 누르면 메뉴 화면으로 돌아갑니다.")
+	int ch = getch();
+	if (ch == ' ' || ch == '\r')
+	{
+		clrscr();
+		return;
+	}
+	return;
 }
 
 BOOL ProcessKey()
@@ -493,7 +522,9 @@ BOOL ProcessKey()
 				while (MoveDown() == FALSE) { ; }
 				return TRUE;
 			case ESC:
-				exit(0);
+				clrscr();
+				selectMenu();
+				break;
 			}
 		}
 	}
@@ -549,8 +580,16 @@ BOOL ItemProcessKey(int* itemList)
 				}
 				break;
 
+			case 'x':
+			case 'X':
+				itemListSwap();
+				DrawItemList();
+				break;
+
 			case ESC:
-				exit(0);
+				clrscr();
+				selectMenu();
+				break;
 			}
 		}
 	}
@@ -559,9 +598,8 @@ BOOL ItemProcessKey(int* itemList)
 
 void activateItem(int item)
 {
-	switch (item)
+	switch (1)
 	{
-		// 시간 정지 아이템
 	case 0:
 		//3초 pause
 		putsxy(50, 18, "시간 정지 아이템이 사용되었습니다.            ");
@@ -569,21 +607,18 @@ void activateItem(int item)
 		DrawItemList();
 		break;
 
-		//속도 지연 아이템
 	case 1:
 		putsxy(50, 18, "속도 지연 아이템이 사용되었습니다.            ");
 		IsTimerOn = 1;
-		BlockDelay = 2000;
 		DrawItemList();
 		break;
 
-		//폭탄 아이템
 	case 2:
-		putsxy(50, 18, "폭탄 아이템이 사용되었습니다.                 ");
+		putsxy(50, 18, "블럭 변환 아이템이 사용되었습니다.             ");
+		isBlockChangeItemEnable = 1;
 		DrawItemList();
 		break;
 
-		//라인 클리어 아이템
 	case 3:
 		putsxy(50, 18, "라인 클리어 아이템이 사용되었습니다.          ");
 		isItemUsed = 1;
