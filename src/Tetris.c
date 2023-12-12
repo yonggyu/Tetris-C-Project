@@ -33,6 +33,7 @@ BOOL ProcessKey();
 BOOL ItemProcessKey(int* itemList);
 void activateItem(int item);
 void PrintBrick(BOOL Show);
+void DrawNext(int nextBrick);
 int GetAround(int x, int y, int b, int r);
 BOOL MoveDown();
 void TestFull();
@@ -205,15 +206,19 @@ void normalGame()
 		}
 	}
 	DrawScreen();
+
 	putsxy(50, 3, "Normal Mode");
 	putsxy(50, 5, "How To Play?")
-		putsxy(50, 6, "좌우:이동, 위:회전, 아래:내림");
+	putsxy(50, 6, "좌우:이동, 위:회전, 아래:내림");
 	putsxy(50, 7, "공백:전부 내림");
 	nFrame = 20;
 
 	// 전체 게임 루프
-	for (; 1;) {
-		brick = random(sizeof(Shape) / sizeof(Shape[0]));
+	int nextBrick = random(sizeof(Shape) / sizeof(Shape[0]));
+	while(1) {
+		brick = nextBrick;
+		nextBrick = random(sizeof(Shape) / sizeof(Shape[0]));
+		DrawNext(nextBrick);
 		nx = BW / 2;
 		ny = 3;
 		rot = 0;
@@ -223,7 +228,7 @@ void normalGame()
 
 		// 벽돌 하나가 바닥에 닿을 때까지의 루프
 		nStay = nFrame;
-		for (; 2;) {
+		for(; 2;) {
 			if (--nStay == 0) {
 				nStay = nFrame;
 				if (MoveDown()) break;
@@ -231,6 +236,7 @@ void normalGame()
 			if (ProcessKey()) break;
 			delay(1000 / 20);
 		}
+
 	}
 	clrscr();
 	putsxy(30, 11, "G A M E  O V E R");
@@ -430,6 +436,20 @@ void DrawScreen()
 		}
 	}
 
+}
+
+void DrawNext(int nextBrick)
+{
+	int x, y, i;
+	putsxy(34, 1, "< NEXT >");
+	for (x = 34; x <= 42; x += 2) { 
+		for (y = 3; y <= 6; y++) {
+			putsxy(x, y, arTile[EMPTY]);
+		}
+	}
+	for (i = 0; i < 4; i++) { 
+		putsxy(38 + (Shape[nextBrick][0][i].x) * 2, 5 + Shape[nextBrick][0][i].y, arTile[BRICK]);
+	}
 }
 
 BOOL ProcessKey()
