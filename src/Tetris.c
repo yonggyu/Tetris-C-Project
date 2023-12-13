@@ -18,13 +18,15 @@
 enum { CTRL = 17, ALT = 18, ESC = 27, LEFT = 75, RIGHT = 77, UP = 72, DOWN = 80 };
 #define putsxy(x, y, s) {gotoxy(x, y);puts(s);}
 #define BX 5
+#define BX2 70
 #define BY 1
 #define BW 10
 #define BH 20
 
-//ê²Œì„ ëª¨ë“œ
+//°ÔÀÓ ¸ğµå
 void normalGame();
 void ItemGame();
+void multiPlayGame();
 
 void selectMenu();
 void DrawItemGameRules();
@@ -45,6 +47,14 @@ int itemListSize();
 void itemListSwap();
 void DrawItemList();
 
+//Player2 ÇÔ¼ö
+BOOL MoveDown2();
+BOOL ProcessKey2();
+void PrintBrick2(BOOL Show);
+void DrawScreen2();
+void TestFull2();
+int GetAround2(int x, int y, int b, int r);
+
 struct Point {
 	int x, y;
 };
@@ -59,12 +69,13 @@ struct Point Shape[][4][4] = {
 };
 
 enum { EMPTY, BRICK, WALL };
-char arTile[3][4] = { ". ","â– ","â–¡" };
+char arTile[3][4] = { ". ","¡á","¡à" };
 int board[BW + 2][BH + 2];
-int nx, ny;
-int brick, rot;
+int board2[BW + 2][BH + 2];
+int nx, ny, nx2, ny2;
+int brick, rot, brick2, rot2;
 
-//ê²Œì„ í‹±
+//°ÔÀÓ Æ½
 void GameDelay();
 int IsTimerOn = 0;
 
@@ -93,18 +104,18 @@ void selectMenu()
 	putsxy(11, 8, "  #     #         #     ##        #         #");
 	putsxy(11, 9, "  #     #####     #     # ##    #####   #### ")
 
-	Top = 0;
+		Top = 0;
 
 	gotoxy(24 - 2, 12);
-	printf("> ê¸°ë³¸ ëª¨ë“œ");
+	printf("> ±âº» ¸ğµå");
 	gotoxy(24, 13);
-	printf("ì•„ì´í…œ ëª¨ë“œ");
+	printf("¾ÆÀÌÅÛ ¸ğµå");
 	gotoxy(24, 14);
-	printf("ìƒì¡´ ëª¨ë“œ");
+	printf("»ıÁ¸ ¸ğµå");
 	gotoxy(24, 15);
-	printf("2ì¸ ë©€í‹°í”Œë ˆì´ ëª¨ë“œ");
+	printf("2ÀÎ ¸ÖÆ¼ÇÃ·¹ÀÌ ¸ğµå");
 	gotoxy(24, 16);
-	printf("ê²Œì„ ì¢…ë£Œ (ESC)");
+	printf("°ÔÀÓ Á¾·á (ESC)");
 
 	int x = 24;
 	int y = 12;
@@ -162,6 +173,11 @@ void selectMenu()
 		ItemGame();
 		break;
 	}
+	case 3:
+	{
+		multiPlayGame();
+		break;
+	}
 	case 4:
 	{
 		exit(0);
@@ -172,7 +188,7 @@ void selectMenu()
 void DrawItemGameRules()
 {
 	clrscr();
-	putsxy(50, 5, "ì•„ì´í…œ ëª¨ë“œ ë°©ë²•");
+	putsxy(50, 5, "¾ÆÀÌÅÛ ¸ğµå ¹æ¹ı");
 
 	int ch = getch();
 	if (ch == ' ' || ch == '\r')
@@ -189,7 +205,7 @@ void normalGame()
 	randomize();
 	clrscr();
 
-	// ê°€ì¥ìë¦¬ëŠ” ë²½, ë‚˜ë¨¸ì§€ëŠ” ë¹ˆ ê³µê°„ìœ¼ë¡œ ì´ˆê¸°í™”í•œë‹¤.
+	// °¡ÀåÀÚ¸®´Â º®, ³ª¸ÓÁö´Â ºó °ø°£À¸·Î ÃÊ±âÈ­ÇÑ´Ù.
 	for (x = 0; x < BW + 2; x++) {
 		for (y = 0; y < BH + 2; y++) {
 			if (y == 0 || y == BH + 1 || x == 0 || x == BW + 1) {
@@ -204,11 +220,11 @@ void normalGame()
 
 	putsxy(50, 3, "Normal Mode");
 	putsxy(50, 5, "How To Play?")
-		putsxy(50, 6, "ì¢Œìš°:ì´ë™, ìœ„:íšŒì „, ì•„ë˜:ë‚´ë¦¼");
-	putsxy(50, 7, "ê³µë°±:ì „ë¶€ ë‚´ë¦¼");
+		putsxy(50, 6, "ÁÂ¿ì:ÀÌµ¿, À§:È¸Àü, ¾Æ·¡:³»¸²");
+	putsxy(50, 7, "°ø¹é:ÀüºÎ ³»¸²");
 	nFrame = 20;
 
-	// ì „ì²´ ê²Œì„ ë£¨í”„
+	// ÀüÃ¼ °ÔÀÓ ·çÇÁ
 	int nextBrick = random(sizeof(Shape) / sizeof(Shape[0]));
 	while (1) {
 		brick = nextBrick;
@@ -221,7 +237,7 @@ void normalGame()
 
 		if (GetAround(nx, ny, brick, rot) != EMPTY) break;
 
-		// ë²½ëŒ í•˜ë‚˜ê°€ ë°”ë‹¥ì— ë‹¿ì„ ë•Œê¹Œì§€ì˜ ë£¨í”„
+		// º®µ¹ ÇÏ³ª°¡ ¹Ù´Ú¿¡ ´êÀ» ¶§±îÁöÀÇ ·çÇÁ
 		nStay = nFrame;
 		for (; 2;) {
 			if (--nStay == 0) {
@@ -260,7 +276,7 @@ void ItemGame()
 	randomize();
 	clrscr();
 
-	// ê°€ì¥ìë¦¬ëŠ” ë²½, ë‚˜ë¨¸ì§€ëŠ” ë¹ˆ ê³µê°„ìœ¼ë¡œ ì´ˆê¸°í™”í•œë‹¤.
+	// °¡ÀåÀÚ¸®´Â º®, ³ª¸ÓÁö´Â ºó °ø°£À¸·Î ÃÊ±âÈ­ÇÑ´Ù.
 	for (x = 0; x < BW + 2; x++) {
 		for (y = 0; y < BH + 2; y++) {
 			if (y == 0 || y == BH + 1 || x == 0 || x == BW + 1) {
@@ -276,15 +292,15 @@ void ItemGame()
 
 	putsxy(50, 3, "Item Mode");
 	putsxy(50, 5, "How To Play?")
-	putsxy(50, 6, "ì¢Œìš°:ì´ë™, ìœ„:íšŒì „, ì•„ë˜:ë‚´ë¦¼");
-	putsxy(50, 7, "ê³µë°±:ì „ë¶€ ë‚´ë¦¼");
-	putsxy(50, 8, "ì•„ì´í…œ ì‚¬ìš©:Z, ì•„ì´í…œ ìˆœì„œ ë³€ê²½:X");
-	putsxy(50, 12, "ì•„ì´í…œ ëª©ë¡");
+		putsxy(50, 6, "ÁÂ¿ì:ÀÌµ¿, À§:È¸Àü, ¾Æ·¡:³»¸²");
+	putsxy(50, 7, "°ø¹é:ÀüºÎ ³»¸²");
+	putsxy(50, 8, "¾ÆÀÌÅÛ »ç¿ë:Z, ¾ÆÀÌÅÛ ¼ø¼­ º¯°æ:X");
+	putsxy(50, 12, "¾ÆÀÌÅÛ ¸ñ·Ï");
 	nFrame = 20;
 
-	// ì „ì²´ ê²Œì„ ë£¨í”„
+	// ÀüÃ¼ °ÔÀÓ ·çÇÁ
 	int nextBrick = random(sizeof(Shape) / sizeof(Shape[0]));
-	while(1) {
+	while (1) {
 		brick = nextBrick;
 		/* if (isBlockChangeItemEnable != 1)
 		{
@@ -302,8 +318,8 @@ void ItemGame()
 		rot = 0;
 		PrintBrick(TRUE);
 
-		// 5% í™•ë¥ ë¡œ ì•„ì´í…œ ìƒì„± (ë‹¨, ì•„ì´í…œì˜ ìµœëŒ€ ê°œìˆ˜ëŠ” 2ê°œ.)
-		//ìŠ¤íƒ ì´ìš©í•˜ì—¬ ìˆ˜ì • itemList
+		// 5% È®·ü·Î ¾ÆÀÌÅÛ »ı¼º (´Ü, ¾ÆÀÌÅÛÀÇ ÃÖ´ë °³¼ö´Â 2°³.)
+		//½ºÅÃ ÀÌ¿ëÇÏ¿© ¼öÁ¤ itemList
 		if (random(5) == 0 && itemListSize() < 2)
 		{
 			switch (random(4))
@@ -311,25 +327,25 @@ void ItemGame()
 			case 0:
 			{
 				itemListPush(0);
-				//ì‹œê°„ ì •ì§€ ì•„ì´í…œ
+				//½Ã°£ Á¤Áö ¾ÆÀÌÅÛ
 				break;
 			}
 			case 1:
 			{
 				itemListPush(1);
-				// ì†ë„ ì§€ì—° ì•„ì´í…œ
+				// ¼Óµµ Áö¿¬ ¾ÆÀÌÅÛ
 				break;
 			}
 			case 2:
 			{
 				itemListPush(2);
-				// ë¸”ëŸ­ ë³€í™˜ ì•„ì´í…œ
+				// ºí·° º¯È¯ ¾ÆÀÌÅÛ
 				break;
 			}
 			case 3:
 			{
 				itemListPush(3);
-				//ë¼ì¸ í´ë¦¬ì–´ ì•„ì´í…œ
+				//¶óÀÎ Å¬¸®¾î ¾ÆÀÌÅÛ
 				break;
 			}
 			}
@@ -338,7 +354,7 @@ void ItemGame()
 
 		if (GetAround(nx, ny, brick, rot) != EMPTY) break;
 
-		// ë²½ëŒ í•˜ë‚˜ê°€ ë°”ë‹¥ì— ë‹¿ì„ ë•Œê¹Œì§€ì˜ ë£¨í”„
+		// º®µ¹ ÇÏ³ª°¡ ¹Ù´Ú¿¡ ´êÀ» ¶§±îÁöÀÇ ·çÇÁ
 		int time = 0;
 		nStay = nFrame;
 		for (; 2;) {
@@ -354,11 +370,11 @@ void ItemGame()
 			}
 		}
 
-		// ë¸”ëŸ­ì´ ë°”ë‹¥ì— ë‹¿ì•˜ì„ ë•Œ ì•„ì´í…œ ì‚¬ìš© ì—¬ë¶€ í™•ì¸
+		// ºí·°ÀÌ ¹Ù´Ú¿¡ ´ê¾ÒÀ» ¶§ ¾ÆÀÌÅÛ »ç¿ë ¿©ºÎ È®ÀÎ
 		if (isItemUsed == 1) {
 			isLineItemEnable = 1;
 			TestFull();
-			isItemUsed = 0; // ì•„ì´í…œ ì‚¬ìš© í›„ ì‚¬ìš© ì—¬ë¶€ ì´ˆê¸°í™”
+			isItemUsed = 0; // ¾ÆÀÌÅÛ »ç¿ë ÈÄ »ç¿ë ¿©ºÎ ÃÊ±âÈ­
 		}
 	}
 	DrawGameOver();
@@ -406,9 +422,9 @@ void itemListSwap()
 		return;
 	}
 	int temp = itemList[0];
-	itemList[0] = itemList[Top-1];
-	itemList[Top-1] = temp;
-} 
+	itemList[0] = itemList[Top - 1];
+	itemList[Top - 1] = temp;
+}
 
 void DrawItemList()
 {
@@ -416,7 +432,7 @@ void DrawItemList()
 	int line = 13;
 	putsxy(50, line, "                                     ");
 	putsxy(50, line + 1, "                                      ");
-	// ì•„ì´í…œ í…ìŠ¤íŠ¸ ì´ˆê¸°í™” í›„ ë®ì–´ì“°ê¸°
+	// ¾ÆÀÌÅÛ ÅØ½ºÆ® ÃÊ±âÈ­ ÈÄ µ¤¾î¾²±â
 	for (int i = 0; i < itemListSize(); i++) {
 		if (itemListSize() == 0) {
 			break;
@@ -424,22 +440,22 @@ void DrawItemList()
 		switch (itemList[i])
 		{
 		case 0:
-			putsxy(50, line, "ì‹œê°„ ì •ì§€ ì•„ì´í…œ");
+			putsxy(50, line, "½Ã°£ Á¤Áö ¾ÆÀÌÅÛ");
 			break;
 
 		case 1:
-			putsxy(50, line, "ì†ë„ ì§€ì—° ì•„ì´í…œ");
+			putsxy(50, line, "¼Óµµ Áö¿¬ ¾ÆÀÌÅÛ");
 			break;
 
 		case 2:
-			putsxy(50, line, "ë¸”ëŸ­ ë³€í™˜ ì•„ì´í…œ");
+			putsxy(50, line, "ºí·° º¯È¯ ¾ÆÀÌÅÛ");
 			break;
 
 		case 3:
-			putsxy(50, line, "ë¼ì¸ í´ë¦¬ì–´ ì•„ì´í…œ");
+			putsxy(50, line, "¶óÀÎ Å¬¸®¾î ¾ÆÀÌÅÛ");
 			break;
 		}
-		line++;  // ë‹¤ìŒ ì¤„ë¡œ ì´ë™
+		line++;  // ´ÙÀ½ ÁÙ·Î ÀÌµ¿
 	}
 }
 
@@ -451,6 +467,15 @@ void DrawScreen()
 		}
 	}
 
+}
+
+void DrawScreen2()
+{
+	for (int x = 0; x < BW + 2; x++) {
+		for (int y = 1; y < BH + 2; y++) {
+			putsxy(BX2 + x * 2, BY + y, arTile[board2[x][y]]);
+		}
+	}
 }
 
 void DrawNext(int nextBrick)
@@ -471,8 +496,8 @@ int DrawGameOver()
 {
 	clrscr();
 	putsxy(30, 11, "G A M E  O V E R");
-	putsxy(30, 13, "ì•„ë¬´ í‚¤ë¥¼ ëˆ„ë¥´ë©´ ë©”ë‰´ í™”ë©´ìœ¼ë¡œ ëŒì•„ê°‘ë‹ˆë‹¤.")
-	int ch = getch();
+	putsxy(30, 13, "¾Æ¹« Å°¸¦ ´©¸£¸é ¸Ş´º È­¸éÀ¸·Î µ¹¾Æ°©´Ï´Ù.")
+		int ch = getch();
 	if (ch == ' ' || ch == '\r')
 	{
 		clrscr();
@@ -480,6 +505,75 @@ int DrawGameOver()
 	}
 	return;
 }
+
+void multiPlayGame()
+{
+	int nFrame, nStay;
+	int x, y;
+
+	randomize();
+	clrscr();
+
+	// °¡ÀåÀÚ¸®´Â º®, ³ª¸ÓÁö´Â ºó °ø°£À¸·Î ÃÊ±âÈ­ÇÑ´Ù.
+	for (x = 0; x < BW + 2; x++) {
+		for (y = 0; y < BH + 2; y++) {
+			if (y == 0 || y == BH + 1 || x == 0 || x == BW + 1) {
+				board[x][y] = WALL;
+				board2[x][y] = WALL;
+			}
+			else {
+				board[x][y] = EMPTY;
+				board2[x][y] = EMPTY;
+			}
+		}
+	}
+	DrawScreen();
+	DrawScreen2();
+
+	putsxy(50, 3, "Normal Mode");
+	putsxy(50, 5, "How To Play?")
+		putsxy(50, 6, "ÁÂ¿ì:ÀÌµ¿, À§:È¸Àü, ¾Æ·¡:³»¸²");
+	putsxy(50, 7, "°ø¹é:ÀüºÎ ³»¸²");
+	nFrame = 20;
+
+	// ÀüÃ¼ °ÔÀÓ ·çÇÁ
+	int nextBrick1 = random(sizeof(Shape) / sizeof(Shape[0]));
+	int nextBrick2 = random(sizeof(Shape) / sizeof(Shape[0]));
+	while (1) {
+		brick = nextBrick1;
+		brick2 = nextBrick2;
+		nextBrick1 = random(sizeof(Shape) / sizeof(Shape[0]));
+		nextBrick2 = random(sizeof(Shape) / sizeof(Shape[0]));
+		//DrawNext °ø°£
+		nx = BW / 2;
+		ny = 3;
+		rot = 0;
+		PrintBrick(TRUE);
+		nx2 = BW / 2;
+		ny2 = 3;
+		rot2 = 0;
+		PrintBrick2(TRUE);
+
+		if (GetAround(nx, ny, brick, rot) != EMPTY || GetAround2(nx2, ny2, brick2, rot2) != EMPTY) break;
+
+		// º®µ¹ ÇÏ³ª°¡ ¹Ù´Ú¿¡ ´êÀ» ¶§±îÁöÀÇ ·çÇÁ
+		nStay = nFrame;
+		for (; 2;) {
+			if (--nStay == 0) {
+				nStay = nFrame;
+				if (MoveDown()) break;
+				if (MoveDown2()) break;
+			}
+			//if (ProcessKey()) break;
+			if (ProcessKey2()) break;
+			delay(1000 / 20);
+		}
+
+	}
+	DrawGameOver();
+	selectMenu();
+}
+
 
 BOOL ProcessKey()
 {
@@ -531,7 +625,7 @@ BOOL ProcessKey()
 	return FALSE;
 }
 
-//ì•„ì´í…œ ëª¨ë“œì˜ ê²½ìš° ì´ í•¨ìˆ˜ë¡œ ì…ë ¥ì„ ë°›ìŒ.
+//¾ÆÀÌÅÛ ¸ğµåÀÇ °æ¿ì ÀÌ ÇÔ¼ö·Î ÀÔ·ÂÀ» ¹ŞÀ½.
 BOOL ItemProcessKey(int* itemList)
 {
 	if (kbhit()) {
@@ -596,31 +690,131 @@ BOOL ItemProcessKey(int* itemList)
 	return FALSE;
 }
 
+BOOL MoveDown2()
+{
+	// ¹Ù´Ú¿¡ ´ê¾ÒÀ¸¸é °¡µæÃ¡´ÂÁö Á¡°ËÇÏ°í TRUE¸¦ ¸®ÅÏÇÑ´Ù.
+	if (GetAround2(nx2, ny2 + 1, brick2, rot2) != EMPTY) {
+		TestFull2();
+		return TRUE;
+	}
+	// ¾ÆÁ÷ °øÁß¿¡ ¶° ÀÖÀ¸¸é ÇÑÄ­ ¾Æ·¡·Î ³»¸°´Ù.
+	PrintBrick2(FALSE);
+	ny2++;
+	PrintBrick2(TRUE);
+	return FALSE;
+}
+
+BOOL ProcessKey2()
+{
+	if (kbhit()) {
+		int ch = getch();
+		if (ch == 0xE0 || ch == 0) {
+			ch = getch();
+			switch (ch) {
+			case LEFT:
+				if (GetAround2(nx2 - 1, ny2, brick2, rot2) == EMPTY) {
+					PrintBrick2(FALSE);
+					nx2--;
+					PrintBrick2(TRUE);
+				}
+				break;
+			case RIGHT:
+				if (GetAround2(nx2 + 1, ny2, brick2, rot2) == EMPTY) {
+					PrintBrick2(FALSE);
+					nx2++;
+					PrintBrick2(TRUE);
+				}
+				break;
+			case UP:
+				if (GetAround2(nx2, ny2, brick2, (rot2 + 1) % 4) == EMPTY) {
+					PrintBrick2(FALSE);
+					rot2 = (rot2 + 1) % 4;
+					PrintBrick2(TRUE);
+				}
+				break;
+			case DOWN:
+				if (MoveDown2()) {
+					return TRUE;
+				}
+				break;
+			}
+		}
+		else {
+			switch (ch) {
+			case 'C':
+			case 'c':
+				while (MoveDown() == FALSE) { ; }
+				return TRUE;
+			case 'A':
+			case 'a':
+				if (GetAround(nx - 1, ny, brick, rot) == EMPTY) {
+					PrintBrick(FALSE);
+					nx--;
+					PrintBrick(TRUE);
+				}
+				break;
+			case 'D':
+			case 'd':
+				if (GetAround(nx + 1, ny, brick, rot) == EMPTY) {
+					PrintBrick(FALSE);
+					nx++;
+					PrintBrick(TRUE);
+				}
+				break;
+			case 'W':
+			case 'w':
+				if (GetAround(nx, ny, brick, (rot + 1) % 4) == EMPTY) {
+					PrintBrick(FALSE);
+					rot = (rot + 1) % 4;
+					PrintBrick(TRUE);
+				}
+				break;
+			case 'S':
+			case 's':
+				if (MoveDown()) {
+					return TRUE;
+				}
+				break;
+			case 'l':
+			case 'L':
+				while (MoveDown2() == FALSE) { ; }
+				return TRUE;
+			case ESC:
+				clrscr();
+				selectMenu();
+				break;
+			}
+		}
+	}
+	return FALSE;
+}
+
+
 void activateItem(int item)
 {
 	switch (1)
 	{
 	case 0:
-		//3ì´ˆ pause
-		putsxy(50, 18, "ì‹œê°„ ì •ì§€ ì•„ì´í…œì´ ì‚¬ìš©ë˜ì—ˆìŠµë‹ˆë‹¤.            ");
+		//3ÃÊ pause
+		putsxy(50, 18, "½Ã°£ Á¤Áö ¾ÆÀÌÅÛÀÌ »ç¿ëµÇ¾ú½À´Ï´Ù.            ");
 		delay(3000);
 		DrawItemList();
 		break;
 
 	case 1:
-		putsxy(50, 18, "ì†ë„ ì§€ì—° ì•„ì´í…œì´ ì‚¬ìš©ë˜ì—ˆìŠµë‹ˆë‹¤.            ");
+		putsxy(50, 18, "¼Óµµ Áö¿¬ ¾ÆÀÌÅÛÀÌ »ç¿ëµÇ¾ú½À´Ï´Ù.            ");
 		IsTimerOn = 1;
 		DrawItemList();
 		break;
 
 	case 2:
-		putsxy(50, 18, "ë¸”ëŸ­ ë³€í™˜ ì•„ì´í…œì´ ì‚¬ìš©ë˜ì—ˆìŠµë‹ˆë‹¤.             ");
+		putsxy(50, 18, "ºí·° º¯È¯ ¾ÆÀÌÅÛÀÌ »ç¿ëµÇ¾ú½À´Ï´Ù.             ");
 		isBlockChangeItemEnable = 1;
 		DrawItemList();
 		break;
 
 	case 3:
-		putsxy(50, 18, "ë¼ì¸ í´ë¦¬ì–´ ì•„ì´í…œì´ ì‚¬ìš©ë˜ì—ˆìŠµë‹ˆë‹¤.          ");
+		putsxy(50, 18, "¶óÀÎ Å¬¸®¾î ¾ÆÀÌÅÛÀÌ »ç¿ëµÇ¾ú½À´Ï´Ù.          ");
 		isItemUsed = 1;
 		DrawItemList();
 		break;
@@ -635,25 +829,44 @@ void PrintBrick(BOOL Show)
 	}
 }
 
+void PrintBrick2(BOOL Show)
+{
+	for (int i = 0; i < 4; i++) {
+		gotoxy(BX2 + (Shape[brick2][rot2][i].x + nx2) * 2, BY + Shape[brick2][rot2][i].y + ny2);
+		puts(arTile[Show ? BRICK : EMPTY]);
+	}
+}
+
 int GetAround(int x, int y, int b, int r)
 {
 	int k = EMPTY;
 
-	// ë²½ëŒì´ ì°¨ì§€í•œ íƒ€ì¼ ëª¨ì–‘ ì¤‘ ê°€ì¥ í° ê°’ì„ ì°¾ëŠ”ë‹¤.
+	// º®µ¹ÀÌ Â÷ÁöÇÑ Å¸ÀÏ ¸ğ¾ç Áß °¡Àå Å« °ªÀ» Ã£´Â´Ù.
 	for (int i = 0; i < 4; i++) {
 		k = max(k, board[x + Shape[b][r][i].x][y + Shape[b][r][i].y]);
 	}
 	return k;
 }
 
+int GetAround2(int x, int y, int b, int r)
+{
+	int k = EMPTY;
+
+	// º®µ¹ÀÌ Â÷ÁöÇÑ Å¸ÀÏ ¸ğ¾ç Áß °¡Àå Å« °ªÀ» Ã£´Â´Ù.
+	for (int i = 0; i < 4; i++) {
+		k = max(k, board2[x + Shape[b][r][i].x][y + Shape[b][r][i].y]);
+	}
+	return k;
+}
+
 BOOL MoveDown()
 {
-	// ë°”ë‹¥ì— ë‹¿ì•˜ìœ¼ë©´ ê°€ë“ì°¼ëŠ”ì§€ ì ê²€í•˜ê³  TRUEë¥¼ ë¦¬í„´í•œë‹¤.
+	// ¹Ù´Ú¿¡ ´ê¾ÒÀ¸¸é °¡µæÃ¡´ÂÁö Á¡°ËÇÏ°í TRUE¸¦ ¸®ÅÏÇÑ´Ù.
 	if (GetAround(nx, ny + 1, brick, rot) != EMPTY) {
 		TestFull();
 		return TRUE;
 	}
-	// ì•„ì§ ê³µì¤‘ì— ë–  ìˆìœ¼ë©´ í•œì¹¸ ì•„ë˜ë¡œ ë‚´ë¦°ë‹¤.
+	// ¾ÆÁ÷ °øÁß¿¡ ¶° ÀÖÀ¸¸é ÇÑÄ­ ¾Æ·¡·Î ³»¸°´Ù.
 	PrintBrick(FALSE);
 	ny++;
 	PrintBrick(TRUE);
@@ -662,12 +875,12 @@ BOOL MoveDown()
 
 void TestFull()
 {
-	// ë°”ë‹¥ì— ë‚´ë ¤ì•‰ì€ ë²½ëŒ ê¸°ë¡
+	// ¹Ù´Ú¿¡ ³»·Á¾ÉÀº º®µ¹ ±â·Ï
 	for (int i = 0; i < 4; i++) {
 		board[nx + Shape[brick][rot][i].x][ny + Shape[brick][rot][i].y] = BRICK;
 	}
 
-	// isLineItemEnableì´ í™œì„±í™”ë˜ì—ˆì„ ë•Œ ê°€ì¥ ì•„ë˜ì— ìˆëŠ” í–‰ì„ ì‚­ì œ
+	// isLineItemEnableÀÌ È°¼ºÈ­µÇ¾úÀ» ¶§ °¡Àå ¾Æ·¡¿¡ ÀÖ´Â ÇàÀ» »èÁ¦
 	if (isLineItemEnable != 0) {
 		for (int x = 1; x < BW + 1; x++) {
 			board[x][BH] = EMPTY;
@@ -678,15 +891,15 @@ void TestFull()
 			}
 		}
 		for (int x = 1; x < BW + 1; x++) {
-			board[x][1] = EMPTY;  // ìƒˆë¡œ ë‚´ë ¤ì˜¨ í–‰ì€ ë¹„ì–´ìˆì–´ì•¼ í•¨
+			board[x][1] = EMPTY;  // »õ·Î ³»·Á¿Â ÇàÀº ºñ¾îÀÖ¾î¾ß ÇÔ
 		}
-		// ì•„ì´í…œ ì‚¬ìš© í›„ isLineItemEnableì„ ë‹¤ì‹œ 0ìœ¼ë¡œ ì„¤ì •
+		// ¾ÆÀÌÅÛ »ç¿ë ÈÄ isLineItemEnableÀ» ´Ù½Ã 0À¸·Î ¼³Á¤
 		isLineItemEnable = 0;
 		DrawScreen();
 		delay(200);
 	}
 
-	// ìˆ˜í‰ìœ¼ë¡œ ê°€ë“ì°¬ ë²½ëŒ ì œê±°
+	// ¼öÆòÀ¸·Î °¡µæÂù º®µ¹ Á¦°Å
 	for (int y = 1; y < BH + 1; y++) {
 		BOOL bFull = TRUE;
 		for (int x = 1; x < BW + 1; x++) {
@@ -695,7 +908,7 @@ void TestFull()
 				break;
 			}
 		}
-		// í•œ ì¤„ì´ ê°€ë“ ì°¼ìœ¼ë©´ ì´ ì¤„ì„ ì œê±°í•œë‹¤.
+		// ÇÑ ÁÙÀÌ °¡µæ Ã¡À¸¸é ÀÌ ÁÙÀ» Á¦°ÅÇÑ´Ù.
 		if (bFull) {
 			for (int ty = y; ty > 1; ty--) {
 				for (int x = 1; x < BW + 1; x++) {
@@ -703,9 +916,60 @@ void TestFull()
 				}
 			}
 			for (int x = 1; x < BW + 1; x++) {
-				board[x][1] = EMPTY;  // ìƒˆë¡œ ë‚´ë ¤ì˜¨ í–‰ì€ ë¹„ì–´ìˆì–´ì•¼ í•¨
+				board[x][1] = EMPTY;  // »õ·Î ³»·Á¿Â ÇàÀº ºñ¾îÀÖ¾î¾ß ÇÔ
 			}
 			DrawScreen();
+			delay(200);
+		}
+	}
+}
+
+void TestFull2()
+{
+	// ¹Ù´Ú¿¡ ³»·Á¾ÉÀº º®µ¹ ±â·Ï
+	for (int i = 0; i < 4; i++) {
+		board2[nx2 + Shape[brick2][rot2][i].x][ny + Shape[brick2][rot2][i].y] = BRICK;
+	}
+
+	// isLineItemEnableÀÌ È°¼ºÈ­µÇ¾úÀ» ¶§ °¡Àå ¾Æ·¡¿¡ ÀÖ´Â ÇàÀ» »èÁ¦
+	if (isLineItemEnable != 0) {
+		for (int x = 1; x < BW + 1; x++) {
+			board2[x][BH] = EMPTY;
+		}
+		for (int ty = BH; ty > 1; ty--) {
+			for (int x = 1; x < BW + 1; x++) {
+				board2[x][ty] = board2[x][ty - 1];
+			}
+		}
+		for (int x = 1; x < BW + 1; x++) {
+			board2[x][1] = EMPTY;  // »õ·Î ³»·Á¿Â ÇàÀº ºñ¾îÀÖ¾î¾ß ÇÔ
+		}
+		// ¾ÆÀÌÅÛ »ç¿ë ÈÄ isLineItemEnableÀ» ´Ù½Ã 0À¸·Î ¼³Á¤
+		isLineItemEnable = 0;
+		DrawScreen2();
+		delay(200);
+	}
+
+	// ¼öÆòÀ¸·Î °¡µæÂù º®µ¹ Á¦°Å
+	for (int y = 1; y < BH + 1; y++) {
+		BOOL bFull = TRUE;
+		for (int x = 1; x < BW + 1; x++) {
+			if (board2[x][y] == EMPTY) {
+				bFull = FALSE;
+				break;
+			}
+		}
+		// ÇÑ ÁÙÀÌ °¡µæ Ã¡À¸¸é ÀÌ ÁÙÀ» Á¦°ÅÇÑ´Ù.
+		if (bFull) {
+			for (int ty = y; ty > 1; ty--) {
+				for (int x = 1; x < BW + 1; x++) {
+					board2[x][ty] = board2[x][ty - 1];
+				}
+			}
+			for (int x = 1; x < BW + 1; x++) {
+				board2[x][1] = EMPTY;  // »õ·Î ³»·Á¿Â ÇàÀº ºñ¾îÀÖ¾î¾ß ÇÔ
+			}
+			DrawScreen2();
 			delay(200);
 		}
 	}
